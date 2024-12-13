@@ -1,0 +1,1058 @@
+# Cursor AI Assistant Configuration
+
+You are an expert iOS/SwiftUI development assistant with deep knowledge of Swift, SwiftUI, and Supabase integration. Your primary focus is producing production-ready, maintainable code that follows Apple's latest guidelines and best practices.
+
+## Core Competencies
+
+- Swift and SwiftUI (Latest versions)
+- Supabase for backend services and user management
+- iOS app architecture and deployment
+- Security best practices
+- Performance optimization
+- Testing and quality assurance
+
+## Code Style and Structure
+
+- Write clean, modern Swift code following Apple's style guidelines
+- Use SwiftUI's declarative syntax for UI components
+- Implement MVVM architecture pattern
+- Prefer structs over classes when possible
+- Use clear, descriptive variable names (e.g., `isLoading`, `hasError`)
+- Structure files logically with clear separation of concerns:
+  - Views
+  - ViewModels
+  - Models
+  - Services
+  - Helpers
+  - Extensions
+
+## Swift and SwiftUI Usage
+
+- Use Swift's latest features appropriately
+- Implement proper property wrappers (@State, @Binding, @ObservedObject)
+- Utilize SwiftUI's built-in navigation and state management
+- Follow SwiftUI lifecycle best practices
+- Implement proper memory management
+
+## Project Structure
+
+```
+MyApp/
+├── Sources/
+│   ├── App/
+│   ├── Features/
+│   ├── Core/
+│   ├── Services/
+│   └── Utils/
+├── Tests/
+├── Resources/
+└── Config/
+```
+
+## Supabase Integration
+
+- Implement secure authentication flows
+- Use proper error handling for network requests
+- Follow Supabase best practices for data modeling
+- Implement proper caching strategies
+- Ensure secure storage of sensitive data
+
+## Error Handling
+
+- Use Swift's error handling mechanisms appropriately
+- Implement proper error logging
+- Create user-friendly error messages
+- Handle edge cases and network failures gracefully
+- Use early returns to avoid nested error handling
+
+## Performance and Security
+
+- Optimize for iOS performance
+- Implement proper caching strategies
+- Follow Apple's security guidelines
+- Protect sensitive user data
+- Implement proper certificate pinning
+- Use secure networking practices
+
+## PowerShell Commands
+
+- Use Remove-Item for file deletion
+- Validate paths before deletion
+- Handle errors appropriately
+- Document command purpose
+- Example:
+  ```powershell
+  Remove-Item -Path "./build" -Recurse -Force -ErrorAction Stop
+  ```
+
+## Testing Requirements
+
+- Write unit tests for business logic
+- Implement UI tests for critical flows
+- Use XCTest framework
+- Implement proper mocking
+- Maintain high code coverage
+
+## Output Expectations
+
+1. Code Examples:
+   - Provide complete, working code snippets
+   - Include necessary imports
+   - Show proper error handling
+   - Include comments for complex logic
+
+2. Planning:
+   - Think step-by-step before implementation
+   - Consider edge cases
+   - Plan for scalability
+   - Consider performance implications
+
+3. Deployment Awareness:
+   - Ensure code is production-ready
+   - Follow App Store guidelines
+   - Consider backwards compatibility
+   - Implement proper versioning
+
+## Project Understanding
+
+Before executing any commands or generating code:
+1. Analyze existing project structure
+2. Understand current implementation
+3. Preserve existing functionality
+4. Maintain consistent coding style
+5. Consider impact on existing features
+
+## Communication Style
+
+- Be concise and technical
+- Provide clear explanations when needed
+- Ask for clarification on ambiguous requirements
+- Highlight potential issues or concerns
+- Suggest improvements when relevant
+
+## Best Practices
+
+- Follow SOLID principles
+- Implement proper dependency injection
+- Use proper access control
+- Maintain clean architecture
+- Document complex functionality
+- Consider accessibility requirements
+- Follow localization best practices
+
+## Database Configurations
+Please see my current database setup here and use this as a guide for the database configuration.
+
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+DO $$ BEGIN
+    CREATE TYPE gender_type AS ENUM ('male', 'female', 'non_binary', 'prefer_not_to_say');
+    CREATE TYPE course_status AS ENUM ('not_started', 'in_progress', 'completed', 'archived');
+    CREATE TYPE test_status AS ENUM ('not_started', 'in_progress', 'completed');
+    CREATE TYPE chat_status AS ENUM ('active', 'ended', 'archived');
+    CREATE TYPE subscription_status AS ENUM ('active', 'canceled', 'expired', 'pending', 'failed', 'paused');
+    CREATE TYPE question_type AS ENUM ('multiple_choice', 'text', 'scale', 'checklist');
+    CREATE TYPE environment_type AS ENUM ('production', 'sandbox');
+    CREATE TYPE message_role AS ENUM ('user', 'assistant', 'system');
+    CREATE TYPE user_role AS ENUM ('user', 'admin', 'moderator');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
+CREATE OR REPLACE FUNCTION encrypt_sensitive_data(p_input text)
+RETURNS text AS $$
+BEGIN
+    RETURN encode(encrypt(
+        p_input::bytea,
+        current_setting('app.encryption_key'),
+        'aes'
+    ), 'base64');
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION decrypt_sensitive_data(p_encrypted text)
+RETURNS text AS $$
+BEGIN
+    RETURN convert_from(
+        decrypt(
+            decode(p_encrypted, 'base64'),
+            current_setting('app.encryption_key'),
+            'aes'
+        ),
+        'utf8'
+    );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION soft_delete_record()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.deleted_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Updated users table with UUID
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT auth.uid(),
+    first_name text NOT NULL,
+    last_name text NOT NULL,
+    email text UNIQUE NOT NULL,
+    password_hash text NOT NULL,
+    profile_image text,
+    gender gender_type,
+    role user_role DEFAULT 'user',
+    email_verified_at timestamp with time zone,
+    phone text UNIQUE,
+    last_login_at timestamp with time zone,
+    deleted_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT valid_email CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$')
+);
+
+-- Updated problems table with UUID reference
+CREATE TABLE problems (
+    problem_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    name text NOT NULL,
+    icon_url text,
+    short_description text,
+    long_description text,
+    severity_level int CHECK (severity_level BETWEEN 1 AND 5),
+    tags text[],
+    created_by UUID REFERENCES users(id),
+    is_active boolean DEFAULT true,
+    deleted_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+-- Updated courses table with UUID reference
+CREATE TABLE courses (
+    course_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    title text NOT NULL,
+    description text,
+    featured_image text,
+    sequence_order int,
+    total_lessons int DEFAULT 0 CHECK (total_lessons >= 0),
+    estimated_completion_time interval,
+    is_active boolean DEFAULT true,
+    created_by UUID REFERENCES users(id),
+    deleted_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+CREATE TABLE courseproblems (
+    course_problem_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    course_id bigint REFERENCES courses(course_id) ON DELETE CASCADE,
+    problem_id bigint REFERENCES problems(problem_id) ON DELETE CASCADE,
+    relevance_score int CHECK (relevance_score BETWEEN 1 AND 10),
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT unique_course_problem UNIQUE (course_id, problem_id)
+);
+
+CREATE TABLE usercourses (
+    user_course_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    course_id bigint REFERENCES courses(course_id) ON DELETE CASCADE,
+    start_date timestamp with time zone,
+    completion_date timestamp with time zone,
+    status course_status DEFAULT 'not_started',
+    last_accessed timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT valid_course_dates CHECK (start_date <= completion_date)
+);
+
+CREATE TABLE lessons (
+    lesson_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    course_id bigint REFERENCES courses(course_id) ON DELETE CASCADE,
+    title text NOT NULL,
+    content text,
+    sequence_order int,
+    total_questions int DEFAULT 0 CHECK (total_questions >= 0),
+    estimated_completion_time interval,
+    deleted_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE userlessons (
+    user_lesson_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_course_id bigint REFERENCES usercourses(user_course_id) ON DELETE CASCADE,
+    lesson_id bigint REFERENCES lessons(lesson_id) ON DELETE CASCADE,
+    completion_date timestamp with time zone,
+    status course_status DEFAULT 'not_started',
+    last_accessed timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE questions (
+    question_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    lesson_id bigint REFERENCES lessons(lesson_id) ON DELETE CASCADE,
+    question_text text NOT NULL,
+    question_type question_type NOT NULL,
+    sequence_order int,
+    is_required boolean DEFAULT false,
+    metadata jsonb,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE userresponses (
+    response_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_lesson_id bigint REFERENCES userlessons(user_lesson_id) ON DELETE CASCADE,
+    question_id bigint REFERENCES questions(question_id) ON DELETE CASCADE,
+    response_text text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE weeklycolumns (
+    column_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    title text NOT NULL,
+    content text,
+    featured_image_url text,
+    sequence_number int,
+    publish_date timestamp with time zone,
+    is_active boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE weeklyquestions (
+    question_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    column_id bigint REFERENCES weeklycolumns(column_id) ON DELETE CASCADE,
+    question_text text NOT NULL,
+    sequence_order int,
+    is_required boolean DEFAULT false,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE userweeklyprogress (
+    progress_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    column_id bigint REFERENCES weeklycolumns(column_id) ON DELETE CASCADE,
+    last_question_id bigint REFERENCES weeklyquestions(question_id) ON DELETE SET NULL,
+    started_at timestamp with time zone,
+    completed_at timestamp with time zone,
+    last_accessed timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE characters (
+    character_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    name text NOT NULL,
+    image_url text,
+    bio text,
+    is_active boolean DEFAULT true,
+    deleted_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE characterproblems (
+    character_problem_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    character_id bigint REFERENCES characters(character_id) ON DELETE CASCADE,
+    problem_id bigint REFERENCES problems(problem_id) ON DELETE CASCADE,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT unique_character_problem UNIQUE (character_id, problem_id)
+);
+
+
+CREATE TABLE psychtests (
+    test_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    title text NOT NULL,
+    image_url text,
+    duration_minutes int CHECK (duration_minutes > 0),
+    total_questions int CHECK (total_questions > 0),
+    description text,
+    information text,
+    is_active boolean DEFAULT true,
+    deleted_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE testbenefits (
+    benefit_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    test_id bigint REFERENCES psychtests(test_id) ON DELETE CASCADE,
+    icon_url text,
+    benefit_text text NOT NULL,
+    display_order int,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE testquestions (
+    question_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    test_id bigint REFERENCES psychtests(test_id) ON DELETE CASCADE,
+    question_text text NOT NULL,
+    question_type question_type NOT NULL,
+    sequence_order int,
+    metadata jsonb,
+    is_required boolean DEFAULT false,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE questionoptions (
+    option_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    question_id bigint REFERENCES testquestions(question_id) ON DELETE CASCADE,
+    option_text text NOT NULL,
+    score_value int,
+    sequence_order int,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE usertests (
+    user_test_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    test_id bigint REFERENCES psychtests(test_id) ON DELETE CASCADE,
+    last_question_id bigint REFERENCES testquestions(question_id) ON DELETE SET NULL,
+    start_time timestamp with time zone,
+    completion_time timestamp with time zone,
+    status test_status DEFAULT 'not_started',
+    test_results jsonb,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE usertestresponses (
+    response_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_test_id bigint REFERENCES usertests(user_test_id) ON DELETE CASCADE,
+    question_id bigint REFERENCES testquestions(question_id) ON DELETE CASCADE,
+    response_value text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE chatsessions (
+    session_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    title text,
+    status chat_status DEFAULT 'active',
+    started_at timestamp with time zone DEFAULT now(),
+    ended_at timestamp with time zone,
+    is_archived boolean DEFAULT false,
+    last_message_at timestamp with time zone,
+    summary text,
+    deleted_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE chatmessages (
+    message_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    session_id bigint REFERENCES chatsessions(session_id) ON DELETE CASCADE,
+    role message_role NOT NULL,
+    content text NOT NULL,
+    sent_at timestamp with time zone DEFAULT now(),
+    metadata jsonb,
+    is_visible boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE tags (
+    tag_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    name text NOT NULL,
+    color text,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE chatsessiontags (
+    session_tag_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    session_id bigint REFERENCES chatsessions(session_id) ON DELETE CASCADE,
+    tag_id bigint REFERENCES tags(tag_id) ON DELETE CASCADE,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT unique_session_tag UNIQUE (session_id, tag_id)
+);
+
+CREATE TABLE subscriptionproducts (
+    product_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    app_store_product_id text UNIQUE,
+    name text NOT NULL,
+    description text,
+    duration text NOT NULL,
+    is_active boolean DEFAULT true,
+    localized_info jsonb,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+
+CREATE TABLE subscriptions (
+    subscription_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    product_id bigint REFERENCES subscriptionproducts(product_id) ON DELETE RESTRICT,
+    status subscription_status DEFAULT 'pending',
+    original_transaction_id text UNIQUE,
+    purchase_date timestamp with time zone,
+    expires_date timestamp with time zone,
+    is_trial_period boolean DEFAULT false,
+    is_in_intro_offer_period boolean DEFAULT false,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT valid_subscription_dates CHECK (purchase_date <= expires_date)
+);
+
+CREATE TABLE subscriptionreceipts (
+    receipt_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    subscription_id bigint REFERENCES subscriptions(subscription_id) ON DELETE CASCADE,
+    receipt_data text,
+    latest_receipt text,
+    verification_date timestamp with time zone DEFAULT now(),
+    environment environment_type NOT NULL,
+    is_valid boolean DEFAULT false,
+    receipt_info jsonb,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT valid_verification_date CHECK (verification_date <= CURRENT_TIMESTAMP)
+);
+
+CREATE TABLE userdevicesettings (
+    settings_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    analytics_enabled boolean DEFAULT false,
+    tracking_authorized boolean DEFAULT false,
+    app_version text,
+    ios_version text,
+    preferred_language text,
+    dark_mode_enabled boolean DEFAULT false,
+    haptics_enabled boolean DEFAULT false,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT unique_user_settings UNIQUE (user_id)
+);
+
+CREATE TABLE userdevices (
+    device_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    device_identifier text NOT NULL,
+    device_name text,
+    device_model text,
+    device_type text,
+    last_active timestamp with time zone,
+    is_active boolean DEFAULT true,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE pushtokens (
+    token_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    device_id bigint REFERENCES userdevices(device_id) ON DELETE CASCADE,
+    push_token text NOT NULL,
+    environment environment_type NOT NULL,
+    is_valid boolean DEFAULT false,
+    last_validated timestamp with time zone,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now(),
+    CONSTRAINT unique_push_token UNIQUE (push_token)
+);
+
+CREATE TABLE notificationsettings (
+    setting_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    notification_type text NOT NULL,
+    is_enabled boolean DEFAULT true,
+    show_previews boolean DEFAULT true,
+    with_sound boolean DEFAULT true,
+    with_badge boolean DEFAULT true,
+    custom_settings jsonb,
+    created_at timestamp with time zone DEFAULT now(),
+    updated_at timestamp with time zone DEFAULT now()
+);
+
+CREATE TABLE audit_logs (
+    log_id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
+    table_name text NOT NULL,
+    record_id text NOT NULL,
+    action text NOT NULL,
+    old_data jsonb,
+    new_data jsonb,
+    performed_by UUID REFERENCES users(id),
+    performed_at timestamp with time zone DEFAULT now()
+);
+
+-- Create all the update triggers
+CREATE TRIGGER update_users_updated_at
+    BEFORE UPDATE ON users
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_problems_updated_at
+    BEFORE UPDATE ON problems
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_courses_updated_at
+    BEFORE UPDATE ON courses
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_courseproblems_updated_at
+    BEFORE UPDATE ON courseproblems
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_usercourses_updated_at
+    BEFORE UPDATE ON usercourses
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_lessons_updated_at
+    BEFORE UPDATE ON lessons
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_userlessons_updated_at
+    BEFORE UPDATE ON userlessons
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_questions_updated_at
+    BEFORE UPDATE ON questions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+
+CREATE TRIGGER update_userresponses_updated_at
+    BEFORE UPDATE ON userresponses
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_weeklycolumns_updated_at
+    BEFORE UPDATE ON weeklycolumns
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_weeklyquestions_updated_at
+    BEFORE UPDATE ON weeklyquestions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_userweeklyprogress_updated_at
+    BEFORE UPDATE ON userweeklyprogress
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_characters_updated_at
+    BEFORE UPDATE ON characters
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_characterproblems_updated_at
+    BEFORE UPDATE ON characterproblems
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_psychtests_updated_at
+    BEFORE UPDATE ON psychtests
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_testbenefits_updated_at
+    BEFORE UPDATE ON testbenefits
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_testquestions_updated_at
+    BEFORE UPDATE ON testquestions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_questionoptions_updated_at
+    BEFORE UPDATE ON questionoptions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_usertests_updated_at
+    BEFORE UPDATE ON usertests
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_usertestresponses_updated_at
+    BEFORE UPDATE ON usertestresponses
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_chatsessions_updated_at
+    BEFORE UPDATE ON chatsessions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_chatmessages_updated_at
+    BEFORE UPDATE ON chatmessages
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_tags_updated_at
+    BEFORE UPDATE ON tags
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_chatsessiontags_updated_at
+    BEFORE UPDATE ON chatsessiontags
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_subscriptionproducts_updated_at
+    BEFORE UPDATE ON subscriptionproducts
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_subscriptions_updated_at
+    BEFORE UPDATE ON subscriptions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_subscriptionreceipts_updated_at
+    BEFORE UPDATE ON subscriptionreceipts
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_userdevicesettings_updated_at
+    BEFORE UPDATE ON userdevicesettings
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_userdevices_updated_at
+    BEFORE UPDATE ON userdevices
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_pushtokens_updated_at
+    BEFORE UPDATE ON pushtokens
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_notificationsettings_updated_at
+    BEFORE UPDATE ON notificationsettings
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- Create indexes for UUID fields and other important columns
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_deleted_at ON users(deleted_at) WHERE deleted_at IS NOT NULL;
+CREATE INDEX idx_problems_tags ON problems USING gin(tags);
+CREATE INDEX idx_problems_created_by ON problems(created_by);
+CREATE INDEX idx_courses_created_by ON courses(created_by);
+CREATE INDEX idx_usercourses_user ON usercourses(user_id);
+CREATE INDEX idx_usercourses_course ON usercourses(course_id);
+CREATE INDEX idx_userweeklyprogress_user ON userweeklyprogress(user_id);
+CREATE INDEX idx_usertests_user ON usertests(user_id);
+CREATE INDEX idx_chatsessions_user ON chatsessions(user_id);
+CREATE INDEX idx_subscriptions_user ON subscriptions(user_id);
+CREATE INDEX idx_userdevices_user ON userdevices(user_id);
+CREATE INDEX idx_notificationsettings_user ON notificationsettings(user_id);
+
+-- Create RLS Policies
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE problems ENABLE ROW LEVEL SECURITY;
+ALTER TABLE courses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE usercourses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE chatsessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own data"
+    ON users FOR SELECT
+    USING (auth.uid()::uuid = id);
+
+CREATE POLICY "Users can update their own data"
+    ON users FOR UPDATE
+    USING (auth.uid()::uuid = id);
+
+CREATE POLICY "Users can view their own courses"
+    ON usercourses FOR SELECT
+    USING (auth.uid()::uuid = user_id);
+
+CREATE POLICY "Users can view their own chat sessions"
+    ON chatsessions FOR SELECT
+    USING (auth.uid()::uuid = user_id);
+
+CREATE POLICY "Users can view their own subscriptions"
+    ON subscriptions FOR SELECT
+    USING (auth.uid()::uuid = user_id);
+
+-- Helper Functions with UUID support
+CREATE OR REPLACE FUNCTION get_user_subscription_status(user_id_param UUID)
+RETURNS subscription_status AS $$
+    SELECT status
+    FROM subscriptions
+    WHERE user_id = user_id_param
+    AND expires_date > CURRENT_TIMESTAMP
+    ORDER BY expires_date DESC
+    LIMIT 1;
+$$ LANGUAGE sql;
+
+CREATE OR REPLACE FUNCTION get_user_course_progress(user_id_param UUID, course_id_param bigint)
+RETURNS json AS $$
+DECLARE
+    result json;
+BEGIN
+    SELECT json_build_object(
+        'total_lessons', c.total_lessons,
+        'completed_lessons', COUNT(ul.completion_date),
+        'progress_percentage', (COUNT(ul.completion_date)::float / NULLIF(c.total_lessons, 0) * 100)::int
+    )
+    INTO result
+    FROM courses c
+    LEFT JOIN usercourses uc ON c.course_id = uc.course_id
+    LEFT JOIN userlessons ul ON uc.user_course_id = ul.user_course_id
+    WHERE uc.user_id = user_id_param
+    AND c.course_id = course_id_param
+    GROUP BY c.total_lessons;
+    
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create views with UUID support
+CREATE OR REPLACE VIEW active_users AS
+SELECT *
+FROM users
+WHERE deleted_at IS NULL
+AND email_verified_at IS NOT NULL;
+
+CREATE OR REPLACE VIEW active_subscriptions AS
+SELECT s.*, u.email, p.name as product_name
+FROM subscriptions s
+JOIN users u ON s.user_id = u.id
+JOIN subscriptionproducts p ON s.product_id = p.product_id
+WHERE s.status = 'active'
+AND s.expires_date > CURRENT_TIMESTAMP;
+
+CREATE OR REPLACE VIEW user_course_summary AS
+SELECT 
+    u.id as user_id,
+    u.email,
+    c.course_id,
+    c.title as course_title,
+    uc.status,
+    uc.start_date,
+    uc.completion_date,
+    COUNT(ul.lesson_id) as completed_lessons,
+    c.total_lessons,
+    (COUNT(ul.lesson_id)::float / NULLIF(c.total_lessons, 0) * 100)::int as completion_percentage
+FROM users u
+JOIN usercourses uc ON u.id = uc.user_id
+JOIN courses c ON uc.course_id = c.course_id
+LEFT JOIN userlessons ul ON uc.user_course_id = ul.user_course_id
+    AND ul.status = 'completed'
+WHERE u.deleted_at IS NULL
+GROUP BY u.id, u.email, c.course_id, c.title, uc.status, uc.start_date, uc.completion_date, c.total_lessons;
+
+-- Storage Bucket Policies
+CREATE POLICY "Give users access to own folder" ON storage.objects
+    FOR ALL USING (
+        auth.uid()::text = (storage.foldername(name))[1]
+    );
+
+-- Additional RLS Policies
+CREATE POLICY "Users can insert their own data"
+    ON users FOR INSERT
+    WITH CHECK (auth.uid()::uuid = id);
+
+CREATE POLICY "Authenticated users can view active courses"
+    ON courses FOR SELECT
+    USING (auth.role() = 'authenticated' AND is_active = true);
+
+CREATE POLICY "Users can modify their own responses"
+    ON userresponses FOR UPDATE
+    USING (auth.uid()::uuid = (
+        SELECT uc.user_id 
+        FROM userresponses ur
+        JOIN userlessons ul ON ur.user_lesson_id = ul.user_lesson_id
+        JOIN usercourses uc ON ul.user_course_id = uc.user_course_id
+        WHERE ur.response_id = userresponses.response_id
+    ));
+
+-- Additional Helper Functions
+CREATE OR REPLACE FUNCTION can_access_course(user_id_param UUID, course_id_param bigint)
+RETURNS boolean AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1
+        FROM usercourses
+        WHERE user_id = user_id_param
+        AND course_id = course_id_param
+        AND deleted_at IS NULL
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION get_active_subscription(user_id_param UUID)
+RETURNS jsonb AS $$
+    SELECT jsonb_build_object(
+        'subscription_id', s.subscription_id,
+        'product_name', p.name,
+        'status', s.status,
+        'expires_date', s.expires_date,
+        'is_trial', s.is_trial_period
+    )
+    FROM subscriptions s
+    JOIN subscriptionproducts p ON s.product_id = p.product_id
+    WHERE s.user_id = user_id_param
+    AND s.status = 'active'
+    AND s.expires_date > CURRENT_TIMESTAMP
+    ORDER BY s.expires_date DESC
+    LIMIT 1;
+$$ LANGUAGE sql;
+
+-- Additional Performance Optimization Indexes
+CREATE INDEX idx_chatmessages_metadata ON chatmessages USING gin(metadata);
+CREATE INDEX idx_testquestions_metadata ON testquestions USING gin(metadata);
+CREATE INDEX idx_subscriptionproducts_localized_info ON subscriptionproducts USING gin(localized_info);
+CREATE INDEX idx_notificationsettings_custom ON notificationsettings USING gin(custom_settings);
+CREATE INDEX idx_lessons_course_sequence ON lessons(course_id, sequence_order);
+CREATE INDEX idx_testquestions_test_sequence ON testquestions(test_id, sequence_order);
+
+-- Maintenance and Cleanup Functions
+CREATE OR REPLACE FUNCTION cleanup_expired_sessions()
+RETURNS void AS $$
+BEGIN
+    UPDATE chatsessions
+    SET status = 'ended',
+        ended_at = CURRENT_TIMESTAMP
+    WHERE status = 'active'
+    AND last_message_at < CURRENT_TIMESTAMP - interval '24 hours';
+    
+    UPDATE pushtokens
+    SET is_valid = false
+    WHERE last_validated < CURRENT_TIMESTAMP - interval '30 days';
+END;
+$$ LANGUAGE plpgsql;
+
+-- Additional Policies for Content Management
+CREATE POLICY "Allow admins to manage all content"
+    ON problems FOR ALL
+    USING (auth.role() = 'authenticated' AND EXISTS (
+        SELECT 1 FROM users 
+        WHERE id = auth.uid() 
+        AND role = 'admin'
+    ));
+
+CREATE POLICY "Allow admins to manage courses"
+    ON courses FOR ALL
+    USING (auth.role() = 'authenticated' AND EXISTS (
+        SELECT 1 FROM users 
+        WHERE id = auth.uid() 
+        AND role = 'admin'
+    ));
+
+-- Function to check user role
+CREATE OR REPLACE FUNCTION is_admin(user_id_param UUID)
+RETURNS boolean AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1
+        FROM users
+        WHERE id = user_id_param
+        AND role = 'admin'
+    );
+END;
+$$ LANGUAGE plpgsql;
+
+-- Additional Utility Functions
+CREATE OR REPLACE FUNCTION get_user_stats(user_id_param UUID)
+RETURNS jsonb AS $$
+    SELECT jsonb_build_object(
+        'total_courses', COUNT(DISTINCT uc.course_id),
+        'completed_courses', COUNT(DISTINCT CASE WHEN uc.status = 'completed' THEN uc.course_id END),
+        'total_lessons_completed', COUNT(DISTINCT ul.lesson_id),
+        'total_tests_taken', COUNT(DISTINCT ut.test_id),
+        'active_subscription', EXISTS (
+            SELECT 1 FROM subscriptions s
+            WHERE s.user_id = user_id_param
+            AND s.status = 'active'
+            AND s.expires_date > CURRENT_TIMESTAMP
+        )
+    )
+    FROM users u
+    LEFT JOIN usercourses uc ON u.id = uc.user_id
+    LEFT JOIN userlessons ul ON uc.user_course_id = ul.user_course_id
+    LEFT JOIN usertests ut ON u.id = ut.user_id
+    WHERE u.id = user_id_param
+    AND u.deleted_at IS NULL;
+$$ LANGUAGE sql;
+
+-- Function to get course analytics
+CREATE OR REPLACE FUNCTION get_course_analytics(course_id_param bigint)
+RETURNS jsonb AS $$
+    SELECT jsonb_build_object(
+        'total_enrollments', COUNT(DISTINCT uc.user_id),
+        'completed_count', COUNT(DISTINCT CASE WHEN uc.status = 'completed' THEN uc.user_id END),
+        'in_progress_count', COUNT(DISTINCT CASE WHEN uc.status = 'in_progress' THEN uc.user_id END),
+        'average_completion_time', 
+            EXTRACT(epoch FROM AVG(
+                CASE WHEN uc.completion_date IS NOT NULL 
+                THEN uc.completion_date - uc.start_date 
+                END
+            ))/86400
+    )
+    FROM courses c
+    LEFT JOIN usercourses uc ON c.course_id = uc.course_id
+    WHERE c.course_id = course_id_param
+    AND c.deleted_at IS NULL;
+$$ LANGUAGE sql;
+
+-- Enable RLS on additional tables
+ALTER TABLE userlessons ENABLE ROW LEVEL SECURITY;
+ALTER TABLE userresponses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE userweeklyprogress ENABLE ROW LEVEL SECURITY;
+ALTER TABLE usertests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE userdevices ENABLE ROW LEVEL SECURITY;
+ALTER TABLE userdevicesettings ENABLE ROW LEVEL SECURITY;
+
+-- Add policies for these tables
+CREATE POLICY "Users can view their own lessons"
+    ON userlessons FOR SELECT
+    USING (
+        EXISTS (
+            SELECT 1 FROM usercourses uc
+            WHERE uc.user_course_id = userlessons.user_course_id
+            AND uc.user_id = auth.uid()::uuid
+        )
+    );
+
+CREATE POLICY "Users can view their own weekly progress"
+    ON userweeklyprogress FOR SELECT
+    USING (user_id = auth.uid()::uuid);
+
+CREATE POLICY "Users can view their own test results"
+    ON usertests FOR SELECT
+    USING (user_id = auth.uid()::uuid);
+
+CREATE POLICY "Users can view their own devices"
+    ON userdevices FOR SELECT
+    USING (user_id = auth.uid()::uuid);
+
+CREATE POLICY "Users can manage their device settings"
+    ON userdevicesettings FOR ALL
+    USING (user_id = auth.uid()::uuid);
+
+
+
+
+
+
+Remember: All code must be production-ready, fully tested, and deployable to the App Store. Never leave TODO comments or incomplete implementations.
