@@ -15,15 +15,12 @@ xcuserdata/
 *.moved-aside
 *.xcuserstate
 *.xcscmblueprint
-*.xcworkspace
-!default.xcworkspace
 
 # Swift Package Manager
 #
 .build/
 Packages/
 Package.resolved
-*.xcodeproj
 
 # Environment variables
 #
@@ -34,8 +31,6 @@ Package.resolved
 # CocoaPods
 #
 Pods/
-*.xcworkspace
-!default.xcworkspace
 xcuserdata/
 *.xccheckout
 *.xcscmblueprint
